@@ -4,6 +4,7 @@ import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
 import { User } from './entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -13,6 +14,7 @@ export class UsersService {
 
   create(createUserInput: CreateUserInput) {
     const createdUser = this.userRepository.create(createUserInput);
+    createdUser.password = bcrypt.hashSync(createdUser.password, 10);
     return this.userRepository.save(createdUser);
   }
 
@@ -34,5 +36,9 @@ export class UsersService {
 
   remove(id: number): Promise<DeleteResult> {
     return this.userRepository.delete(id);
+  }
+
+  comparePassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
   }
 }

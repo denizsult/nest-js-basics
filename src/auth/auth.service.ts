@@ -1,14 +1,26 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { CreateUserInput } from 'src/users/dto/create-user.input';
 import { UsersService } from '../users/users.service';
 import { LoginInput } from './dto/login.input';
 
 @Injectable()
 export class AuthService {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findOne({ email });
-    if (user?.password === password) {
+    const isPasswordValid = this.usersService.comparePassword(
+      password,
+      user?.password,
+    );
+
+    console.log(isPasswordValid);
+
+    if (isPasswordValid) {
       const { password, ...result } = user;
       return result;
     }
@@ -23,9 +35,27 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
     const { password, ...result } = user;
+
     return {
-      access_token: 'jwt',
+      access_token: this.jwtService.sign({
+        email: user.email,
+        sub: user.id,
+      }),
       user: result,
     };
+  }
+
+  async register(loginResponse: CreateUserInput) {
+    const isUserAlreadyExists = await this.usersService.findOne({
+      email: loginResponse.email,
+    });
+
+    if (isUserAlreadyExists) {
+      throw new Error('User already exists');
+    }
+
+    const user = await this.usersService.create(loginResponse);
+
+    return user;
   }
 }
