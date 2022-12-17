@@ -18,8 +18,6 @@ export class AuthService {
       user?.password,
     );
 
-    console.log(isPasswordValid);
-
     if (isPasswordValid) {
       const { password, ...result } = user;
       return result;
